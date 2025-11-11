@@ -1,0 +1,155 @@
+Confusion Matrix:
+ [[ 93 356]
+ [  2  17]]
+
+Classification Report:
+               precision    recall  f1-score   support
+
+      Avslag       0.05      0.89      0.09        19
+    Godkjent       0.98      0.21      0.34       449
+
+    accuracy                           0.24       468
+   macro avg       0.51      0.55      0.21       468
+weighted avg       0.94      0.24      0.33       468
+
+
+Antall prediksjoner gjort: 468 av 468
+Kategori: Godkjent=Godkjent
+
+Feature Stats:
+          ÅDT, total  ÅDT, andel lange kjøretøy  Fartsgrense  Avkjørsler  Trafikkulykker  Kurvatur, horisontal  Kurvatur, stigning Avkjørsel, holdningsklasse          Funksjonsklasse
+count     93.000000                  93.000000    93.000000   93.000000       93.000000             93.000000           93.000000                         93                       93
+unique          NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                          1                        2
+top             NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                Lite streng  E - Lokale adkomstveger
+freq            NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                         93                       92
+mean     414.763441                  11.193548    59.139785   11.623656        0.677419          44109.107527            0.737634                        NaN                      NaN
+std      426.878748                   8.532875    14.938709    5.096704        1.095061          49901.750167            4.217405                        NaN                      NaN
+min       60.000000                   5.000000    30.000000    0.000000        0.000000          -2249.000000           -8.600000                        NaN                      NaN
+25%      200.000000                   8.000000    50.000000    9.000000        0.000000             14.000000           -1.300000                        NaN                      NaN
+50%      300.000000                   9.000000    60.000000   12.000000        0.000000           1257.000000            0.200000                        NaN                      NaN
+75%      500.000000                  12.000000    80.000000   14.000000        1.000000          99999.000000            3.000000                        NaN                      NaN
+max     3500.000000                  83.000000    80.000000   33.000000        5.000000          99999.000000           12.200000                        NaN                      NaN
+
+Søknadstype Counts:
+ Søknadstype
+Utvidet bruk              57
+Varig tillatelse          22
+Endret bruk                9
+Midlertidig tillatelse     5
+Name: count, dtype: int64
+
+Kategori: Godkjent=Avslag
+
+Feature Stats:
+           ÅDT, total  ÅDT, andel lange kjøretøy  Fartsgrense  Avkjørsler  Trafikkulykker  Kurvatur, horisontal  Kurvatur, stigning Avkjørsel, holdningsklasse          Funksjonsklasse
+count     346.000000                 346.000000   351.000000  356.000000      356.000000            350.000000          349.000000                        344                      350
+unique           NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                          4                        4
+top              NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                     Streng  E - Lokale adkomstveger
+freq             NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                        128                      109
+mean     1273.439306                  11.537572    65.783476    9.592697        3.379213          37390.351429            0.381948                        NaN                      NaN
+std      1873.561727                   4.832862    13.975442    6.032761        6.654831          48496.887538            3.544008                        NaN                      NaN
+min        20.000000                   2.000000    30.000000    0.000000        0.000000          -2999.000000          -20.600000                        NaN                      NaN
+25%       350.000000                   9.000000    60.000000    5.000000        0.000000           -172.750000           -1.200000                        NaN                      NaN
+50%       650.500000                  10.000000    60.000000    9.000000        1.000000            429.500000            0.200000                        NaN                      NaN
+75%      1440.000000                  14.750000    80.000000   12.000000        3.000000          99999.000000            2.400000                        NaN                      NaN
+max     15000.000000                  33.000000    80.000000   49.000000       55.000000          99999.000000           12.500000                        NaN                      NaN
+
+Søknadstype Counts:
+ Søknadstype
+Utvidet bruk              131
+Varig tillatelse          123
+Midlertidig tillatelse     76
+Endret bruk                26
+Name: count, dtype: int64
+
+Kategori: Avslag=Godkjent
+
+Feature Stats:
+         ÅDT, total  ÅDT, andel lange kjøretøy  Fartsgrense  Avkjørsler  Trafikkulykker  Kurvatur, horisontal  Kurvatur, stigning Avkjørsel, holdningsklasse          Funksjonsklasse
+count      2.00000                   2.000000     2.000000     2.00000             2.0              2.000000            2.000000                          2                        2
+unique         NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                          1                        1
+top            NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                Lite streng  E - Lokale adkomstveger
+freq           NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                          2                        2
+mean     480.00000                   8.500000    55.000000    15.50000             0.0            212.500000            0.150000                        NaN                      NaN
+std      452.54834                   0.707107     7.071068     2.12132             0.0           1769.888273            0.636396                        NaN                      NaN
+min      160.00000                   8.000000    50.000000    14.00000             0.0          -1039.000000           -0.300000                        NaN                      NaN
+25%      320.00000                   8.250000    52.500000    14.75000             0.0           -413.250000           -0.075000                        NaN                      NaN
+50%      480.00000                   8.500000    55.000000    15.50000             0.0            212.500000            0.150000                        NaN                      NaN
+75%      640.00000                   8.750000    57.500000    16.25000             0.0            838.250000            0.375000                        NaN                      NaN
+max      800.00000                   9.000000    60.000000    17.00000             0.0           1464.000000            0.600000                        NaN                      NaN
+
+Søknadstype Counts:
+ Søknadstype
+Varig tillatelse    2
+Name: count, dtype: int64
+
+Kategori: Avslag=Avslag
+
+Feature Stats:
+          ÅDT, total  ÅDT, andel lange kjøretøy  Fartsgrense  Avkjørsler  Trafikkulykker  Kurvatur, horisontal  Kurvatur, stigning Avkjørsel, holdningsklasse          Funksjonsklasse
+count     16.000000                  16.000000    17.000000   17.000000       17.000000             16.000000           16.000000                         16                       16
+unique          NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                          3                        4
+top             NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                Lite streng  E - Lokale adkomstveger
+freq            NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                          7                        7
+mean     711.562500                  11.750000    67.058824    9.941176        1.529412          49824.000000            0.181250                        NaN                      NaN
+std      732.960933                   4.725816    18.629515    6.758981        2.960525          51831.474705            3.107672                        NaN                      NaN
+min      100.000000                   6.000000    30.000000    0.000000        0.000000          -2669.000000           -7.400000                        NaN                      NaN
+25%      173.750000                   8.750000    60.000000    5.000000        0.000000           -315.000000           -0.800000                        NaN                      NaN
+50%      350.000000                   9.500000    80.000000   10.000000        0.000000          51334.500000            0.250000                        NaN                      NaN
+75%     1157.500000                  15.250000    80.000000   12.000000        1.000000          99999.000000            1.800000                        NaN                      NaN
+max     2500.000000                  23.000000    80.000000   25.000000       10.000000          99999.000000            7.100000                        NaN                      NaN
+
+Søknadstype Counts:
+ Søknadstype
+Varig tillatelse    10
+Utvidet bruk         5
+Endret bruk          2
+Name: count, dtype: int64
+
+Kategori: Predikert Godkjent
+
+Feature Stats:
+          ÅDT, total  ÅDT, andel lange kjøretøy  Fartsgrense  Avkjørsler  Trafikkulykker  Kurvatur, horisontal  Kurvatur, stigning Avkjørsel, holdningsklasse          Funksjonsklasse
+count     95.000000                  95.000000    95.000000   95.000000       95.000000             95.000000           95.000000                         95                       95
+unique          NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                          1                        2
+top             NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                Lite streng  E - Lokale adkomstveger
+freq            NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                         95                       94
+mean     416.136842                  11.136842    59.052632   11.705263        0.663158          43184.968421            0.725263                        NaN                      NaN
+std      424.989051                   8.450872    14.808974    5.077849        1.087751          49773.189109            4.173676                        NaN                      NaN
+min       60.000000                   5.000000    30.000000    0.000000        0.000000          -2249.000000           -8.600000                        NaN                      NaN
+25%      200.000000                   8.000000    50.000000    9.000000        0.000000            -37.500000           -1.150000                        NaN                      NaN
+50%      300.000000                   9.000000    60.000000   12.000000        0.000000           1257.000000            0.200000                        NaN                      NaN
+75%      500.000000                  11.500000    80.000000   14.000000        1.000000          99999.000000            3.000000                        NaN                      NaN
+max     3500.000000                  83.000000    80.000000   33.000000        5.000000          99999.000000           12.200000                        NaN                      NaN
+
+Søknadstype Counts:
+ Søknadstype
+Utvidet bruk              57
+Varig tillatelse          24
+Endret bruk                9
+Midlertidig tillatelse     5
+Name: count, dtype: int64
+
+Kategori: Predikert Avslag
+
+Feature Stats:
+           ÅDT, total  ÅDT, andel lange kjøretøy  Fartsgrense  Avkjørsler  Trafikkulykker  Kurvatur, horisontal  Kurvatur, stigning Avkjørsel, holdningsklasse          Funksjonsklasse
+count     362.000000                 362.000000   368.000000  373.000000      373.000000            366.000000          365.000000                        360                      366
+unique           NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                          4                        4
+top              NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                     Streng  E - Lokale adkomstveger
+freq             NaN                        NaN          NaN         NaN             NaN                   NaN                 NaN                        133                      116
+mean     1248.604972                  11.546961    65.842391    9.608579        3.294906          37933.898907            0.373151                        NaN                      NaN
+std      1841.290855                   4.821955    14.193952    6.058153        6.541341          48638.808880            3.522439                        NaN                      NaN
+min        20.000000                   2.000000    30.000000    0.000000        0.000000          -2999.000000          -20.600000                        NaN                      NaN
+25%       344.750000                   9.000000    60.000000    5.000000        0.000000           -184.750000           -1.200000                        NaN                      NaN
+50%       635.000000                  10.000000    60.000000    9.000000        1.000000            456.500000            0.200000                        NaN                      NaN
+75%      1400.000000                  15.000000    80.000000   12.000000        3.000000          99999.000000            2.400000                        NaN                      NaN
+max     15000.000000                  33.000000    80.000000   49.000000       55.000000          99999.000000           12.500000                        NaN                      NaN
+
+Søknadstype Counts:
+ Søknadstype
+Utvidet bruk              136
+Varig tillatelse          133
+Midlertidig tillatelse     76
+Endret bruk                28
+Name: count, dtype: int64
