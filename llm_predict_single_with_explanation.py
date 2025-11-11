@@ -33,12 +33,11 @@ df["ID"] = [str(uuid.uuid4()) for _ in range(len(df))]
 # 5. Lag binær fasitkolonne
 df["VEDTAK_BINÆR"] = df["EGS.VEDTAK.10670"].apply(lambda x: "Avslag" if x == "Avslag" else "Godkjent")
 
-df.drop(columns=["Kurvatur, horisontal","Kurvatur, stigning"])
+df = df.drop(columns=["Kurvatur, horisontal", "Kurvatur, stigning", "Avkjørsler", "EGS.VEDTAKSDATO.11444", "EGS.TILLEGGSINFORMASJON.11566", "EGS.TILLATELSE GJELDER TIL DATO.12049", "EGS.GEOMETRI, PUNKT.4753"])
 
 # 6. Velg numeriske features for matching
 features = [
-    "ÅDT, total", "ÅDT, andel lange kjøretøy", "Fartsgrense",
-    "Avkjørsler", "Trafikkulykker"
+    "ÅDT, total", "ÅDT, andel lange kjøretøy", "Fartsgrense", "Trafikkulykker"
 ]
 
 # 8. Skaler numeriske verdier
@@ -47,7 +46,7 @@ df_scaled = scaler.fit_transform(df[features].fillna(0))
 
 # 10. Format rad
 def format_row(row):
-    row_dict = row.drop(["EGS.VEDTAK.10670", "VEDTAK_BINÆR"]).to_dict()
+    row_dict = row.drop(["EGS.VEDTAK.10670", "VEDTAK_BINÆR", "ID", "OBJ.VEGOBJEKT-ID", "EGS.SAKSNUMMER.1822", "EGS.ARKIVREFERANSE, URL.12050"]).to_dict()
     return "\n".join([f"{key}: {value}" for key, value in row_dict.items()])
 
 def get_few_shot_examples(test_row, test_vector, df_without_test, scaler):

@@ -20,8 +20,7 @@ prediction_categories = {
 
 # Select relevant features for analysis
 features = [
-    "ÅDT, total", "ÅDT, andel lange kjøretøy", "Fartsgrense",
-    "Avkjørsler", "Trafikkulykker", "Kurvatur, horisontal", "Kurvatur, stigning",
+    "ÅDT, total", "ÅDT, andel lange kjøretøy", "Fartsgrense", "Trafikkulykker",
     "Avkjørsel, holdningsklasse", "Funksjonsklasse"
 ]
 

@@ -38,14 +38,12 @@ df["ID"] = [str(uuid.uuid4()) for _ in range(len(df))]
 # 5. Lag binær fasitkolonne
 df["VEDTAK_BINÆR"] = df["EGS.VEDTAK.10670"].apply(lambda x: "Avslag" if x == "Avslag" else "Godkjent")
 
-df.drop(columns=["Kurvatur, horisontal","Kurvatur, stigning"])
+df = df.drop(columns=["Kurvatur, horisontal", "Kurvatur, stigning", "Avkjørsler", "EGS.VEDTAKSDATO.11444", "EGS.TILLEGGSINFORMASJON.11566", "EGS.TILLATELSE GJELDER TIL DATO.12049", "EGS.GEOMETRI, PUNKT.4753"])
 
 # 6. Velg numeriske features for matching
 features = [
-    "ÅDT, total", "ÅDT, andel lange kjøretøy", "Fartsgrense",
-    "Avkjørsler", "Trafikkulykker"
+    "ÅDT, total", "ÅDT, andel lange kjøretøy", "Fartsgrense", "Trafikkulykker"
 ]
-
 
 # 8. Skaler numeriske verdier
 scaler = StandardScaler()
@@ -64,7 +62,7 @@ def parse_json_response(result_text):
 
 # 10. Format rad
 def format_row(row):
-    row_dict = row.drop(["EGS.VEDTAK.10670", "VEDTAK_BINÆR"]).to_dict()
+    row_dict = row.drop(["EGS.VEDTAK.10670", "VEDTAK_BINÆR", "ID", "OBJ.VEGOBJEKT-ID", "EGS.SAKSNUMMER.1822", "EGS.ARKIVREFERANSE, URL.12050"]).to_dict()
     return "\n".join([f"{key}: {value}" for key, value in row_dict.items()])
 
 def get_few_shot_examples(test_row, test_vector, df_without_test, scaler):
@@ -172,10 +170,10 @@ def predict_approval(row, row_index):
 #godkjent_df = df[df["VEDTAK_BINÆR"] == "Godkjent"].sample(n=math.floor(n_avslag*2), random_state=42)
 
 # Kombiner og shuffle
-#balanced_test_df = pd.concat([avslag_df, godkjent_df]).sample(frac=1, random_state=42).reset_index(drop=True)
+#df = pd.concat([avslag_df, godkjent_df]).sample(frac=1, random_state=42).reset_index(drop=True)
 
 #print("Fordeling i balansert testsett:")
-#print(balanced_test_df["VEDTAK_BINÆR"].value_counts())
+#print(df["VEDTAK_BINÆR"].value_counts())
 
 # 12. Prediksjon med progressbar
 predictions = []
