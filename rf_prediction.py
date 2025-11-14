@@ -8,7 +8,7 @@ from treeinterpreter import treeinterpreter as ti
 def get_rf_prediction(
         avkjorsel, bakke, adt_total, andel_lange, fartsgrense, sving=0,
         model_path="models/balanced_rf_model.pkl.gz",
-        return_exp=True):
+        return_exp=False):
     
     FEATURE_MAP = {
     'ÅDT, total Avkjørsler bakke': "Total trafikkmengde per år × antall avkjørsler × kurvatur, stigning",
