@@ -10,6 +10,8 @@ import re
 import uuid
 from streamlit_extras.stylable_container import stylable_container
 
+from rf_prediction import get_rf_prediction
+
 # Last inn miljøvariabler
 load_dotenv()
 api_version = os.getenv("api_version")
@@ -38,7 +40,8 @@ def load_data():
     df = pd.read_csv("data_2022-2025.csv", sep=";")
     df["ID"] = [str(uuid.uuid4()) for _ in range(len(df))]
     df["VEDTAK_BINÆR"] = df["EGS.VEDTAK.10670"].apply(lambda x: "Avslag" if x == "Avslag" else "Godkjent")
-    df = df.drop(columns=["Kurvatur, horisontal", "Kurvatur, stigning", "Avkjørsler", "EGS.VEDTAKSDATO.11444", "EGS.TILLEGGSINFORMASJON.11566", "EGS.TILLATELSE GJELDER TIL DATO.12049", "EGS.GEOMETRI, PUNKT.4753"])
+    df = df.drop(columns=["Kurvatur, horisontal", "EGS.VEDTAKSDATO.11444", "EGS.TILLEGGSINFORMASJON.11566", "EGS.TILLATELSE GJELDER TIL DATO.12049", "EGS.GEOMETRI, PUNKT.4753"])
+    df["Kurvatur, stigning"] = df["Kurvatur, stigning"].abs()
     return df
 
 df = load_data()
@@ -83,24 +86,17 @@ def get_few_shot_examples(test_row, test_vector, df_without_test, scaler):
     examples = pd.concat([godkjente, avslagte]).sort_values("distance")
     return examples
 
-def predict_approval_detailed(row, row_index):
-    if row["Avkjørsel, holdningsklasse"] != "Lite streng":
-        return {
-            "vedtak": "Avslag",
-            "begrunnelse": f"Automatisk vurdert som en vanskelig søknad på grunn av at holdningsklassen er {row['Avkjørsel, holdningsklasse']}."
-        }
+def predict_approval_detailed(row, row_index, prob_avslag, klasse):
+    kategori = "Vanskelig"
+    begrunnelseForKategori = ""
+    #if row["Avkjørsel, holdningsklasse"] != "Lite streng":
+    #    begrunnelseForKategori = f"holdningsklassen er {row['Avkjørsel, holdningsklasse']}"
 
-    if row["Fartsgrense"] > 60 and row["Søknadstype"] not in ["Utvidet bruk", "Endret bruk"]:
-        return {
-            "vedtak": "Avslag",
-            "begrunnelse": f"Automatisk vurdert som en vanskelig søknad på grunn av fartsgrense {row['Fartsgrense']}km/t og søknadstypen er {row['Søknadstype']}."
-        }
+    #if row["Fartsgrense"] > 60 and row["Søknadstype"] not in ["Utvidet bruk", "Endret bruk"]:
+    #    begrunnelseForKategori = f"fartsgrensen er {row['Fartsgrense']}km/t og søknadstypen er {row['Søknadstype']}"
 
-    if row["Svingkategori"] == "Krapp sving" and row["Søknadstype"] not in ["Utvidet bruk", "Endret bruk"]:
-        return {
-            "vedtak": "Avslag",
-            "begrunnelse": f"Automatisk vurdert som en vanskelig søknad på grunn av at avkjørselen er i en sving og søknadstypen er {row['Søknadstype']}."
-        }
+    #if row["Svingkategori"] == "Krapp sving" and row["Søknadstype"] not in ["Utvidet bruk", "Endret bruk"]:
+    #   begrunnelseForKategori = f"avkjørselen er i en sving og søknadstypen er {row['Søknadstype']}"
 
     test_vector = df_scaled[row_index]
     df_without_test = df[df["ID"] != row["ID"]]
@@ -117,8 +113,19 @@ def predict_approval_detailed(row, row_index):
         few_shot_examples.append(example)
 
     prompt = f"""
-    Du er saksbehandler i Statens vegvesen. Gitt følgende søknadsdata og retningslinjene nedenfor, skal du avgjøre om søknaden burde fått godkjent eller avslag. 
+    Du er saksbehandler i Statens vegvesen. Gitt følgende søknadsdata, tree-explainer fra maskinlæringsmodell og retningslinjene nedenfor, skal du avgjøre om søknaden burde fått godkjent eller avslag. 
 
+    Sannsynlighet for avslag: {prob_avslag}
+    Kategori: {klasse}
+    Faktorer som ØKER sannsynligheten for avslag:
+    • Total trafikkmengde per år × antall avkjørsler (verdi: 25000.0, effekt: +0.072)
+    • Total trafikkmengde per år × fartsgrense × antall avkjørsler (verdi: 1000000.0, effekt: +0.011)
+    • Total trafikkmengde per år × kurvatur, stigning (verdi: 500.0, effekt: +0.002)
+    Faktorer som REDUSERER sannsynligheten for avslag:
+    • Total trafikkmengde per år × antall avkjørsler × antall tunge kjøretøy per år (verdi: 125000.0, effekt: -0.053)
+    • Total trafikkmengde per år × antall avkjørsler × kurvatur, stigning (verdi: 2500.0, effekt: -0.056)
+    • Total trafikkmengde per år × andel tunge kjøretøy (verdi: 25000.0, effekt: -0.158)
+        
     Nå vurder denne søknaden:
     {format_row(row)}
 
@@ -143,17 +150,32 @@ def predict_approval_detailed(row, row_index):
         result = json.loads(re.sub(r"^```[a-zA-Z]*\n?|```$", "", response.choices[0].message.content.strip()))
         vedtak = "Godkjent" if result.get("approve") else "Avslag"
         begrunnelse = result.get("reason", "Ingen begrunnelse oppgitt.")
+        if begrunnelseForKategori == "":
+            if vedtak == "Godkjent" and prob_avslag < 50:
+                kategori = "Enkel"
+                begrunnelseForKategori = "det ikke høy sannsynlighet for avslag og foreslått vedtak er godkjent"
+            elif vedtak == "Godkjent" and prob_avslag >= 50:
+                kategori = "Vanskelig"
+                begrunnelseForKategori = "det er høy sannsynlighet for avslag"
+            else:
+                kategori = "Vanskelig"
+                begrunnelseForKategori = "foreslått vedtak er avslag"
+        
         return {
             "vedtak": vedtak,
-            "begrunnelse": begrunnelse
+            "begrunnelse": begrunnelse,
+            "kategori": kategori,
+            "begrunnelseForKategori": begrunnelseForKategori,
         }
     except Exception as e:
         return {
             "vedtak": "Feil",
-            "begrunnelse": str(e)
+            "begrunnelse": str(e),
+            "kategori": kategori,
+            "begrunnelseForKategori": begrunnelseForKategori,
         }
     
-def predict_approval_cached(row, row_index):
+def predict_approval_cached(row, row_index, prob_avslag, klasse):
     app_id = row["ID"]
 
     # Check if cached
@@ -164,7 +186,7 @@ def predict_approval_cached(row, row_index):
         return st.session_state["llm_cache"][app_id]
 
     # Otherwise compute and cache
-    result = predict_approval_detailed(row, row_index)
+    result = predict_approval_detailed(row, row_index, prob_avslag, klasse)
     st.session_state["llm_cache"][app_id] = result
     return result
     
@@ -264,15 +286,23 @@ else:
             **Arkivreferanse (URL):** {row.get('EGS.ARKIVREFERANSE, URL.12050', 'Ikke oppgitt')}  
             """)
 
-
+        prob_avslag, klasse = get_rf_prediction(
+            avkjorsel=row.get('Avkjørsel', 0),
+            bakke=row.get('Kurvatur, stigning', 0),
+            adt_total=row.get('ÅDT, total', 0),
+            andel_lange=row.get('ÅDT, andel lange kjøretøy', 0),
+            fartsgrense=row.get('Fartsgrense', 0),
+            sving=row.get('Kurvatur, horisontal', 0))
+        
         # Vurder søknaden
         with st.spinner("Vurderer søknaden..."):
-            result = predict_approval_cached(row, index)
+            result = predict_approval_cached(row, index, prob_avslag, klasse)
 
         st.subheader("Automatisk råd")
-        st.write(f"**Kategori:** {'Enkel søknad' if result['vedtak'] == 'Godkjent' else 'Vanskelig søknad'}")
-        if result['vedtak'] == 'Godkjent':
-            st.write(f"**Foreslått vedtak:** {result['vedtak']}")
-        st.write(f"**Begrunnelse:** {result['begrunnelse']}")
+        st.write(f"**Kategori:** {result['kategori']} søknad, ettersom {result['begrunnelseForKategori']}.")
+        st.write(f"**Sannsynlighet for avslag:** Vår maskinlæringsmodell, som er trent på historiske søknader fra perioden januar 2022 til oktober 2025, predikerer en sannsynlighet for avslag på {prob_avslag}%. I denne perioden er ca. 5% avslått, så dette kan regnes som {klasse}.")
+        st.write(f"**Foreslått vedtak:** {result['vedtak']} for {row['Søknadstype'].lower()}.")
+        #st.write(f"**Sannsynlighet for avslag:** {prob_avslag}%")
+        st.write(f"**Begrunnelse for foreslått vedtak:** {result['begrunnelse']}")
     else:
         st.error("Fant ikke søknad med valgt saksnummer.")

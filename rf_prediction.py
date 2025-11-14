@@ -93,11 +93,11 @@ def get_rf_prediction(avkjorsel, bakke, adt_total, andel_lange, fartsgrense, svi
     prob_avslag = round(pred[0][1] * 100, 1)
 
     if prob_avslag< 5:
-        klasse = "statistisk lav sannsynlighet for avslag"
-    elif prob_avslag>5 and prob_avslag <25:
-        klasse= "statistisk medium sannsynlighet for avslag"
+        klasse = "lav sannsynlighet for avslag"
+    elif prob_avslag>5 and prob_avslag <50:
+        klasse= "medium sannsynlighet for avslag"
     else:
-        klasse = "statistisk høy sannsynlighet for avslag"
+        klasse = "høy sannsynlighet for avslag"
 
 
     return prob_avslag, klasse
