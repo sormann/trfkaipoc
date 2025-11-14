@@ -218,3 +218,35 @@ Kvantilar for predikert sannsynlighet (y_pred_proba):
   0.50-kvantil (median): 0.1470
   0.75-kvantil: 0.4013
 ------------------------------------------------------------
+
+------------------------------------------------------------
+Modell trent: 20251114_132757
+Fil lagret: balanced_rf_model_20251114_132757.pkl.gz
+Topp 10 features:
+  - ÅDT, total bakke
+  - ÅDT, andel lange kjøretøy bakke antall_lange_kj
+  - Funksjonsklasse_E - Lokale adkomstveger sving_sigmoid
+  - ÅDT, total antall_lange_kj
+  - Avkjørsler Funksjonsklasse_E - Lokale adkomstveger sving_sigmoid
+  - ÅDT, total Avkjørsel, holdningsklasse_Streng bakke
+  - ÅDT, total bakke antall_lange_kj
+  - ÅDT, total Fartsgrense bakke
+  - Avkjørsler Funksjonsklasse_D - Lokale samleveger EGS.BRUKSOMRÅDE.1256_Skog/skogbruk
+  - ÅDT, andel lange kjøretøy Fartsgrense
+
+Classification report (test-set):
+              precision    recall  f1-score   support
+
+           0       0.98      0.94      0.96       334
+           1       0.05      0.11      0.07         9
+
+    accuracy                           0.92       343
+   macro avg       0.51      0.53      0.51       343
+weighted avg       0.95      0.92      0.93       343
+
+
+Kvantilar for predikert sannsynlighet (y_pred_proba):
+  0.25-kvantil: 0.0055
+  0.50-kvantil (median): 0.0292
+  0.75-kvantil: 0.1103
+------------------------------------------------------------
