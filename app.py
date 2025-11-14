@@ -153,6 +153,21 @@ def predict_approval_detailed(row, row_index):
             "begrunnelse": str(e)
         }
     
+def predict_approval_cached(row, row_index):
+    app_id = row["ID"]
+
+    # Check if cached
+    if "llm_cache" not in st.session_state:
+        st.session_state["llm_cache"] = {}
+
+    if app_id in st.session_state["llm_cache"]:
+        return st.session_state["llm_cache"][app_id]
+
+    # Otherwise compute and cache
+    result = predict_approval_detailed(row, row_index)
+    st.session_state["llm_cache"][app_id] = result
+    return result
+    
 def getReadableTurnCategory(turnCategory:str, radius:float):
     if turnCategory == "Krapp sving":
         return f"Sving (svingradius {abs(radius)}m)"
@@ -252,7 +267,7 @@ else:
 
         # Vurder søknaden
         with st.spinner("Vurderer søknaden..."):
-            result = predict_approval_detailed(row, index)
+            result = predict_approval_cached(row, index)
 
         st.subheader("Automatisk råd")
         st.write(f"**Kategori:** {'Enkel søknad' if result['vedtak'] == 'Godkjent' else 'Vanskelig søknad'}")
