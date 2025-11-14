@@ -1,0 +1,220 @@
+
+------------------------------------------------------------
+Modell trent: 20251114_101603
+Fil lagret: balanced_rf_model_20251114_101603.pkl.gz
+Topp 10 features:
+  - ÅDT, total bakke
+  - bakke antall_lange_kj
+  - ÅDT, total ÅDT, andel lange kjøretøy bakke
+  - Avkjørsler bakke antall_lange_kj
+  - Fartsgrense bakke antall_lange_kj
+  - bakke bakke_ind antall_lange_kj
+  - ÅDT, andel lange kjøretøy bakke antall_lange_kj
+  - ÅDT, andel lange kjøretøy Avkjørsel, holdningsklasse_Streng bakke
+  - Fartsgrense bakke
+  - Avkjørsler Avkjørsel, holdningsklasse_Lite streng sving_sigmoid
+------------------------------------------------------------
+
+------------------------------------------------------------
+Modell trent: 20251114_102126
+Fil lagret: balanced_rf_model_20251114_102126.pkl.gz
+Topp 10 features:
+  - ÅDT, total bakke antall_lange_kj
+  - ÅDT, total ÅDT, andel lange kjøretøy bakke
+  - ÅDT, total bakke
+  - ÅDT, total Fartsgrense bakke
+  - ÅDT, andel lange kjøretøy Avkjørsel, holdningsklasse_Streng bakke
+  - Fartsgrense bakke antall_lange_kj
+  - ÅDT, andel lange kjøretøy Avkjørsel, holdningsklasse_Streng EGS.BRUKSOMRÅDE.1256_Bolig
+  - Avkjørsler Avkjørsel, holdningsklasse_Lite streng bakke_ind
+  - Avkjørsler bakke antall_lange_kj
+  - Avkjørsler Avkjørsel, holdningsklasse_Lite streng sving_sigmoid
+
+Classification report (test-set):
+              precision    recall  f1-score   support
+
+           0       0.99      0.91      0.95       338
+           1       0.03      0.20      0.06         5
+
+    accuracy                           0.90       343
+   macro avg       0.51      0.56      0.50       343
+weighted avg       0.97      0.90      0.94       343
+
+------------------------------------------------------------
+
+------------------------------------------------------------
+Modell trent: 20251114_102658
+Fil lagret: balanced_rf_model_20251114_102658.pkl.gz
+Topp 10 features:
+  - ÅDT, total ÅDT, andel lange kjøretøy bakke
+  - ÅDT, total Fartsgrense bakke
+  - ÅDT, total bakke antall_lange_kj
+  - ÅDT, total bakke
+  - Avkjørsel, holdningsklasse_Streng bakke bakke_ind
+  - bakke antall_lange_kj
+  - ÅDT, total bakke bakke_ind
+  - ÅDT, andel lange kjøretøy bakke bakke_ind
+  - ÅDT, andel lange kjøretøy Avkjørsel, holdningsklasse_Streng bakke
+  - ÅDT, andel lange kjøretøy Fartsgrense bakke
+
+Classification report (test-set):
+              precision    recall  f1-score   support
+
+           0       0.98      0.83      0.90       335
+           1       0.02      0.12      0.03         8
+
+    accuracy                           0.82       343
+   macro avg       0.50      0.48      0.46       343
+weighted avg       0.95      0.82      0.88       343
+
+------------------------------------------------------------
+
+------------------------------------------------------------
+Modell trent: 20251114_102947
+Fil lagret: balanced_rf_model_20251114_102947.pkl.gz
+Topp 10 features:
+  - ÅDT, total bakke
+  - ÅDT, total Fartsgrense bakke
+  - ÅDT, total bakke antall_lange_kj
+  - ÅDT, andel lange kjøretøy Fartsgrense bakke
+  - Fartsgrense bakke antall_lange_kj
+  - Avkjørsler Avkjørsel, holdningsklasse_Lite streng sving_sigmoid
+  - Fartsgrense bakke
+  - Avkjørsel, holdningsklasse_Streng EGS.BRUKSOMRÅDE.1256_Bolig bakke
+  - ÅDT, andel lange kjøretøy Trafikkulykker Funksjonsklasse_D - Lokale samleveger
+  - Avkjørsler Avkjørsel, holdningsklasse_Lite streng bakke_ind
+
+Classification report (test-set):
+              precision    recall  f1-score   support
+
+           0       0.98      0.94      0.96       334
+           1       0.05      0.11      0.07         9
+
+    accuracy                           0.92       343
+   macro avg       0.51      0.53      0.51       343
+weighted avg       0.95      0.92      0.93       343
+
+------------------------------------------------------------
+
+------------------------------------------------------------
+Modell trent: 20251114_103525
+Fil lagret: balanced_rf_model_20251114_103525.pkl.gz
+Topp 10 features:
+  - ÅDT, total bakke
+  - Avkjørsler Avkjørsel, holdningsklasse_Lite streng sving_sigmoid
+  - Fartsgrense Avkjørsler Avkjørsel, holdningsklasse_Lite streng
+  - Fartsgrense bakke antall_lange_kj
+  - bakke antall_lange_kj
+  - ÅDT, total Fartsgrense bakke
+  - Avkjørsel, holdningsklasse_Streng bakke antall_lange_kj
+  - ÅDT, andel lange kjøretøy Avkjørsel, holdningsklasse_Streng bakke
+  - ÅDT, total ÅDT, andel lange kjøretøy bakke
+  - ÅDT, andel lange kjøretøy bakke bakke_ind
+
+Classification report (test-set):
+              precision    recall  f1-score   support
+
+           0       0.98      0.87      0.92       335
+           1       0.04      0.25      0.07         8
+
+    accuracy                           0.85       343
+   macro avg       0.51      0.56      0.50       343
+weighted avg       0.96      0.85      0.90       343
+
+------------------------------------------------------------
+
+------------------------------------------------------------
+Modell trent: 20251114_104349
+Fil lagret: balanced_rf_model_20251114_104349.pkl.gz
+Topp 10 features:
+  - Avkjørsler Avkjørsel, holdningsklasse_Lite streng sving_sigmoid
+  - Avkjørsel, holdningsklasse_Streng EGS.BRUKSOMRÅDE.1256_Bolig bakke
+  - ÅDT, total Fartsgrense bakke
+  - Avkjørsler bakke antall_lange_kj
+  - ÅDT, total ÅDT, andel lange kjøretøy bakke
+  - bakke antall_lange_kj
+  - ÅDT, andel lange kjøretøy Avkjørsel, holdningsklasse_Streng bakke
+  - bakke bakke_ind antall_lange_kj
+  - ÅDT, total Avkjørsel, holdningsklasse_Streng bakke
+  - Fartsgrense bakke antall_lange_kj
+
+Classification report (test-set):
+              precision    recall  f1-score   support
+
+           0       0.98      0.85      0.91       338
+           1       0.00      0.00      0.00         5
+
+    accuracy                           0.84       343
+   macro avg       0.49      0.43      0.46       343
+weighted avg       0.97      0.84      0.90       343
+
+
+Kvantilar for predikert sannsynlighet (y_pred_proba):
+  0.25-kvantil: 0.0266
+  0.50-kvantil (median): 0.0974
+  0.75-kvantil: 0.2746
+------------------------------------------------------------
+
+------------------------------------------------------------
+Modell trent: 20251114_104528
+Fil lagret: balanced_rf_model_20251114_104528.pkl.gz
+Topp 10 features:
+  - ÅDT, total Fartsgrense bakke
+  - Avkjørsel, holdningsklasse_Streng EGS.BRUKSOMRÅDE.1256_Bolig bakke
+  - bakke antall_lange_kj
+  - Fartsgrense bakke antall_lange_kj
+  - ÅDT, andel lange kjøretøy Avkjørsel, holdningsklasse_Streng bakke
+  - Fartsgrense Funksjonsklasse_E - Lokale adkomstveger antall_lange_kj
+  - ÅDT, total bakke
+  - Fartsgrense Trafikkulykker Funksjonsklasse_D - Lokale samleveger
+  - ÅDT, total bakke bakke_ind
+  - Fartsgrense bakke
+
+Classification report (test-set):
+              precision    recall  f1-score   support
+
+           0       0.97      0.91      0.94       334
+           1       0.03      0.11      0.05         9
+
+    accuracy                           0.89       343
+   macro avg       0.50      0.51      0.49       343
+weighted avg       0.95      0.89      0.92       343
+
+
+Kvantilar for predikert sannsynlighet (y_pred_proba):
+  0.25-kvantil: 0.0138
+  0.50-kvantil (median): 0.0556
+  0.75-kvantil: 0.2114
+------------------------------------------------------------
+
+------------------------------------------------------------
+Modell trent: 20251114_104723
+Fil lagret: balanced_rf_model_20251114_104723.pkl.gz
+Topp 10 features:
+  - ÅDT, total ÅDT, andel lange kjøretøy bakke
+  - Avkjørsel, holdningsklasse_Streng EGS.BRUKSOMRÅDE.1256_Bolig bakke
+  - Fartsgrense bakke antall_lange_kj
+  - ÅDT, andel lange kjøretøy Avkjørsel, holdningsklasse_Streng bakke
+  - Fartsgrense bakke
+  - ÅDT, total Fartsgrense bakke
+  - ÅDT, total bakke
+  - ÅDT, andel lange kjøretøy bakke antall_lange_kj
+  - ÅDT, total bakke antall_lange_kj
+  - ÅDT, total ÅDT, andel lange kjøretøy Fartsgrense
+
+Classification report (test-set):
+              precision    recall  f1-score   support
+
+           0       0.99      0.79      0.88       339
+           1       0.01      0.25      0.03         4
+
+    accuracy                           0.79       343
+   macro avg       0.50      0.52      0.45       343
+weighted avg       0.98      0.79      0.87       343
+
+
+Kvantilar for predikert sannsynlighet (y_pred_proba):
+  0.25-kvantil: 0.0369
+  0.50-kvantil (median): 0.1470
+  0.75-kvantil: 0.4013
+------------------------------------------------------------
