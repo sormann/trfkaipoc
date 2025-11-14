@@ -117,4 +117,4 @@ def get_rf_prediction(
         return prob_avslag, klasse
 
 # Test
-print(get_rf_prediction(5, 0.1, 5000, 0.1, 40))
+#3print(get_rf_prediction(5, 0.1, 5000, 0.1, 40))
