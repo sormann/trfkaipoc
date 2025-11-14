@@ -18,6 +18,7 @@ def get_rf_prediction(avkjorsel, bakke, adt_total, andel_lange, fartsgrense, svi
 
     Output:
         prob_avslag: predikert sannsynlighet for "Avslag", 0–100 (float)
+        klasse: klassifisert sannsynlighet basert på historikk og prediksjon (vudering av model_training_txt)
     """
 
     # Sørg for at alle inputs er float
@@ -91,8 +92,16 @@ def get_rf_prediction(avkjorsel, bakke, adt_total, andel_lange, fartsgrense, svi
     # Hent ut sannsynlighet for 'Avslag' og rund av til én desimal (prosent)
     prob_avslag = round(pred[0][1] * 100, 1)
 
-    return prob_avslag
+    if prob_avslag< 5:
+        klasse = "statistisk lav sannsynlighet for avslag"
+    elif prob_avslag>5 and prob_avslag <25:
+        klasse= "statistisk medium sannsynlighet for avslag"
+    else:
+        klasse = "statistisk høy sannsynlighet for avslag"
+
+
+    return prob_avslag, klasse
 
 
 # Example test:
-#print(get_rf_prediction(5, 0.1, 5000, 0.1, 40))
+print(get_rf_prediction(5, 0.1, 5000, 0.1, 40))

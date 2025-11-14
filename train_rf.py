@@ -100,7 +100,7 @@ def train_model():
     X_train, y_train = smote.fit_resample(X_train, y_train)
 
     model = BalancedRandomForestClassifier(
-        n_estimators=5000,
+        n_estimators=10000,
         random_state=42,
         n_jobs=-1,
         sampling_strategy=1
@@ -113,6 +113,14 @@ def train_model():
     # ---------------------------------------------------
     y_pred = model.predict(X_test)
     report = classification_report(y_test, y_pred)
+
+    # Prediker sannsynlighet for klassen "Avslag" (klasse 1)
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+
+    # Beregn kvantilene
+    q25 = float(np.quantile(y_pred_proba, 0.25))
+    q50 = float(np.quantile(y_pred_proba, 0.50))  # median
+    q75 = float(np.quantile(y_pred_proba, 0.75))
 
     # ---------------------------------------------------
     # Lagre modellen med timestamp
@@ -139,7 +147,15 @@ def train_model():
         log.write("\nClassification report (test-set):\n")
         log.write(report + "\n")
 
+        log.write("\nKvantilar for predikert sannsynlighet (y_pred_proba):\n")
+        log.write(f"  0.25-kvantil: {q25:.4f}\n")
+        log.write(f"  0.50-kvantil (median): {q50:.4f}\n")
+        log.write(f"  0.75-kvantil: {q75:.4f}\n")
+
+
         log.write("-" * 60 + "\n")
+
+
 
     print("✔ Modell trent og lagret:")
     print("   ", gz_filename)
