@@ -2,58 +2,41 @@ import pickle
 import pandas as pd
 import numpy as np
 import gzip
+from treeinterpreter import treeinterpreter as ti
 
 
-def get_rf_prediction(avkjorsel, bakke, adt_total, andel_lange, fartsgrense, sving=0, model_path="models/balanced_rf_model.pkl.gz"):
-    """
-    Beregn sannsynlighet for avdslag ved bruk av en forhåndstrent RandomForest-modell.
+def get_rf_prediction(
+        avkjorsel, bakke, adt_total, andel_lange, fartsgrense, sving=0,
+        model_path="models/balanced_rf_model.pkl.gz",
+        return_exp=False):
+    
+    FEATURE_MAP = {
+    'ÅDT, total Avkjørsler bakke': "Total trafikkmengde per år × antall avkjørsler × kurvatur, stigning",
+    'ÅDT, total Avkjørsler': "Total trafikkmengde per år × antall avkjørsler",
+    'ÅDT, total antall_lange_kj': "Total trafikkmengde per år × antall tunge kjøretøy per år",
+    'ÅDT, andel lange kjøretøy Avkjørsler antall_lange_kj': "Andel tunge kjøretøy per år × antall avkjørsler × antall tunge kjøretøy per år",
+    'Avkjørsler bakke antall_lange_kj': "Antall avkjørsler × kurvatur, stigning × antall tunge kjøretøy per år",
+    'ÅDT, total Avkjørsler antall_lange_kj': "Total trafikkmengde per år × avkjørsler × antall tunge kjøretøy per år",
+    'Avkjørsler antall_lange_kj': "Antall avkjørsler × antall tunge kjøretøy per år",
+    'ÅDT, total bakke': "Total trafikkmengde per år × kurvatur, stigning",
+    'ÅDT, total ÅDT, andel lange kjøretøy': "Total trafikkmengde per år × andel tunge kjøretøy",
+    'ÅDT, total Fartsgrense Avkjørsler': "Total trafikkmengde per år × fartsgrense × antall avkjørsler"
+    }
 
-    Input:
-        avkjorsel: "Avkjørsler"
-        bakke: "Kurvatur, stigning"
-        adt_total: "ÅDT, total"
-        andel_lange: "ÅDT, andel lange kjøretøy"
-        fartsgrense: "Fartsgrense"
-        sving: "Kurvatur, horisontal' 
+    # Konverter til tall
+    avkjorsel = float(avkjorsel)
+    bakke = float(bakke)
+    adt_total = float(adt_total)
+    andel_lange = float(andel_lange)
+    fartsgrense = float(fartsgrense)
+    sving = float(sving)
 
-    Output:
-        prob_avslag: predikert sannsynlighet for "Avslag", 0–100 (float)
-        klasse: klassifisert sannsynlighet basert på historikk og prediksjon (vudering av model_training_txt)
-    """
+    # Avledede verdier
+    antall_lange = adt_total * andel_lange / 100
+    bakke = np.abs(bakke)
+    sving = np.abs(sving)
 
-    # Sørg for at alle inputs er float
-    try:
-        avkjorsel = float(avkjorsel)
-        bakke = float(bakke)
-        adt_total = float(adt_total)
-        andel_lange = float(andel_lange)
-        fartsgrense = float(fartsgrense)
-        sving = float(sving)
-    except ValueError:
-        return "Feil: En eller flere input-verdier kunne ikke konverteres til tall."
-
-    # Beregn avledet variabel
-    antall_lange = adt_total * andel_lange/100
-    bakke=np.abs(bakke)
-    sving=np.abs(sving)
-
-    if sving>99000:
-        sving_ind=0
-    else:
-        sving_ind=1
-
-    if bakke>0.1:
-        bakke_ind=1
-    else:
-        sving_ind=0
-
-    if sving<99000:
-        sving_sigmoid= 1 / (1 + np.exp(-0.001 * sving))
-    else:
-        sving_sigmoid=0
-
-
-    # Forbered én rad med inputdata slik modellen forventer dem
+    # Input slik modellen forventer
     prediction_row = {
         'ÅDT, total Avkjørsler bakke': adt_total * avkjorsel * bakke,
         'ÅDT, total Avkjørsler': adt_total * avkjorsel,
@@ -66,42 +49,72 @@ def get_rf_prediction(avkjorsel, bakke, adt_total, andel_lange, fartsgrense, svi
         'ÅDT, total ÅDT, andel lange kjøretøy': adt_total * antall_lange,
         'ÅDT, total Fartsgrense Avkjørsler': adt_total * fartsgrense * avkjorsel
     }
-
-    # Konverter dict → DataFrame (formatet scikit-learn krever)
     prediction_df = pd.DataFrame([prediction_row])
 
-    # -------------------------------
-    # Last inn modellen trygt med try/except
-    # -------------------------------
-    try:
-        with gzip.open(model_path, "rb") as f:
-            model = pickle.load(f)
-    except FileNotFoundError:
-        return "Feil: Fant ikke modellfilen. Sjekk at models/balanced_rf_model.pkl.gz finnes."
-    except Exception as e:
-        return f"Feil ved lasting av modell: {e}"
+    # Last modell
+    with gzip.open(model_path, "rb") as f:
+        model = pickle.load(f)
 
-    # -------------------------------
-    # Kjør prediksjon med try/except
-    # -------------------------------
-    try:
-        pred = model.predict_proba(prediction_df)
-    except Exception as e:
-        return f"Feil under prediksjon: {e}"
+    # Modellprediksjon
+    pred = model.predict_proba(prediction_df)[0]
+    prob_avslag = float(pred[1])
 
-    # Hent ut sannsynlighet for 'Avslag' og rund av til én desimal (prosent)
-    prob_avslag = round(pred[0][1] * 100, 1)
-
-    if prob_avslag< 5:
+    # Klassifisering
+    if prob_avslag < 0.05:
         klasse = "lav sannsynlighet for avslag"
-    elif prob_avslag>5 and prob_avslag <50:
-        klasse= "medium sannsynlighet for avslag"
+    elif prob_avslag < 0.50:
+        klasse = "medium sannsynlighet for avslag"
     else:
         klasse = "høy sannsynlighet for avslag"
 
+    # --------------------------------------
+    # Forklaring (treeinterpreter)
+    # --------------------------------------
+    # Forklaring med treeinterpreter
 
-    return prob_avslag, klasse
+    prediction, bias, contributions = ti.predict(model, prediction_df.values)
+    contrib_class1 = contributions[0][:, 1]
 
+    explanation_df = pd.DataFrame({
+        "technical_name": prediction_df.columns,
+        "readable_name": [FEATURE_MAP[col] for col in prediction_df.columns],
+        "value": prediction_df.iloc[0],
+        "contribution": contrib_class1
+    }).sort_values(by="contribution", ascending=False)
 
-# Example test:
-print(get_rf_prediction(5, 0.1, 5000, 0.1, 40))
+    drivers_high = explanation_df[explanation_df["contribution"] > 0].head(3)
+    drivers_low = explanation_df[explanation_df["contribution"] < 0].tail(3)
+
+    # Pen tekst
+    def format_list(df):
+        if df.empty:
+            return "  (ingen vesentlige faktorer)"
+        out = []
+        for _, r in df.iterrows():
+            navn = r["readable_name"]
+            verdi = round(float(r["value"]), 3)
+            effekt = round(float(r["contribution"]), 3)
+            tegn = "+" if effekt >= 0 else ""
+            out.append(f"  • {navn} (verdi: {verdi}, effekt: {tegn}{effekt})")
+        return "\n".join(out)
+
+    pretty_text = (
+        f"Sannsynlighet for avslag: {round(prob_avslag * 100, 1)} %\n"
+        f"Kategori: {klasse}\n\n"
+        f"Faktorer som ØKER sannsynligheten for avslag:\n{format_list(drivers_high)}\n\n"
+        f"Faktorer som REDUSERER sannsynligheten for avslag:\n{format_list(drivers_low)}"
+    )
+
+    if return_exp:
+        return {
+            "probability_percent": round(prob_avslag * 100, 1),
+            "klasse": klasse,
+            "drivers_higher": drivers_high.to_dict(orient="records"),
+            "drivers_lower": drivers_low.to_dict(orient="records"),
+            "pretty_text": pretty_text
+        }
+    else:
+        return prob_avslag, klasse
+
+# Test
+#3print(get_rf_prediction(5, 0.1, 5000, 0.1, 40))
