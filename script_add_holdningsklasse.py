@@ -2,11 +2,11 @@ import csv
 import httpx
 
 # Input and output file paths
-input_file = 'data_2022-2025_radius.csv'
-output_file = 'data_2022-2025_stigning.csv'
+input_file = 'data_annotert.csv'
+output_file = 'data_annotert2.csv'
 
 # Define the API endpoint
-url = "https://nvdbapiles.atlas.vegvesen.no/vegobjekter/api/v4/vegobjekter/825"
+url = "https://nvdbapiles.atlas.vegvesen.no/vegobjekter/api/v4/vegobjekter/815"
 
 # Read the input CSV and process each row
 with open(input_file, mode='r', encoding='utf-8') as infile, open(output_file, mode='w', newline='', encoding='utf-8') as outfile:
@@ -15,7 +15,7 @@ with open(input_file, mode='r', encoding='utf-8') as infile, open(output_file, m
 
     # Read the header and append new columns
     header = next(reader)
-    header.append("Kurvatur, stigning")
+    header.append("Avkjørsel, holdningsklasse")
     writer.writerow(header)
 
     # Create an HTTP client
@@ -42,7 +42,7 @@ with open(input_file, mode='r', encoding='utf-8') as infile, open(output_file, m
 
                 if objekter:
                     egenskaper = objekter[0].get("egenskaper", [])
-                    kurvatur = next((e["verdi"] for e in egenskaper if e["navn"] == "Stigning"), "")
+                    kurvatur = next((e["verdi"] for e in egenskaper if e["navn"] == "Klasse"), "")
 
             # Append the extracted values to the row and write to output
             row.append(kurvatur)
