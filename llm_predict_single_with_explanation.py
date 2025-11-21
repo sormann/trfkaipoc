@@ -7,6 +7,10 @@ from sklearn.preprocessing import StandardScaler
 import json
 import re
 import uuid
+from sklearn.metrics import confusion_matrix, classification_report
+from tqdm import tqdm
+
+from rf_prediction import get_rf_prediction
 
 # 1. Last inn miljøvariabler
 load_dotenv()
@@ -27,13 +31,14 @@ with fitz.open("HB_R701_Behandling_avkjorselssaker_2014.pdf") as pdf:
     pdf_text = "\n".join(page.get_text() for page in pdf)
 
 # 4. Les datasettet
-df = pd.read_csv("data_2022-2025.csv", sep=";")
+df = pd.read_csv("data_annotert.csv", sep=";")
+df = df.dropna(subset=['Vurdering'])
 df["ID"] = [str(uuid.uuid4()) for _ in range(len(df))]
+df = df.drop(columns=["Kurvatur, horisontal", "EGS.VEDTAKSDATO.11444", "EGS.TILLEGGSINFORMASJON.11566", "EGS.TILLATELSE GJELDER TIL DATO.12049", "EGS.GEOMETRI, PUNKT.4753"])
+df["Kurvatur, stigning"] = df["Kurvatur, stigning"].abs()
 
 # 5. Lag binær fasitkolonne
 df["VEDTAK_BINÆR"] = df["EGS.VEDTAK.10670"].apply(lambda x: "Avslag" if x == "Avslag" else "Godkjent")
-
-df = df.drop(columns=["Kurvatur, horisontal", "Kurvatur, stigning", "Avkjørsler", "EGS.VEDTAKSDATO.11444", "EGS.TILLEGGSINFORMASJON.11566", "EGS.TILLATELSE GJELDER TIL DATO.12049", "EGS.GEOMETRI, PUNKT.4753"])
 
 # 6. Velg numeriske features for matching
 features = [
@@ -45,27 +50,22 @@ scaler = StandardScaler()
 df_scaled = scaler.fit_transform(df[features].fillna(0))
 
 # 10. Format rad
+
 def format_row(row):
     row_dict = row.drop(["EGS.VEDTAK.10670", "VEDTAK_BINÆR", "ID", "OBJ.VEGOBJEKT-ID", "EGS.SAKSNUMMER.1822", "EGS.ARKIVREFERANSE, URL.12050"]).to_dict()
     return "\n".join([f"{key}: {value}" for key, value in row_dict.items()])
 
 def get_few_shot_examples(test_row, test_vector, df_without_test, scaler):
-    # Start med streng filtrering
     filtered = df_without_test[df_without_test["Avkjørsel, holdningsklasse"] == test_row["Avkjørsel, holdningsklasse"]]
-
-    # Legg til bruksområde hvis nok eksempler
     new_filtered = filtered[filtered["EGS.BRUKSOMRÅDE.1256"] == test_row["EGS.BRUKSOMRÅDE.1256"]]
     if len(new_filtered) > 0:
         filtered = new_filtered
-    # Hvis filtrering gir tomt datasett, bruk hele df uten test-raden
     if len(filtered) == 0:
         filtered = df_without_test.copy()
 
-    # Beregn avstand
     filtered_scaled = scaler.transform(filtered[features].fillna(0))
     filtered["distance"] = ((filtered_scaled - test_vector) ** 2).sum(axis=1)
 
-    # Fyll opp hvis for få
     def fill_examples(df_source, existing_df, label, needed, vector):
         current = existing_df
         missing = needed - len(current)
@@ -77,43 +77,25 @@ def get_few_shot_examples(test_row, test_vector, df_without_test, scaler):
             return pd.concat([current, filler])
         return current
 
-    # Velg alle avslåtte og godkjente
     avslagte = df_without_test[df_without_test["VEDTAK_BINÆR"] == "Avslag"]
     godkjente = filtered[filtered["VEDTAK_BINÆR"] == "Godkjent"].nsmallest(1, "distance")
-
-    # Fyll på godkjente eksempler hvis for få
     godkjente = fill_examples(df_without_test, godkjente, "Godkjent", 1, test_vector)
 
     examples = pd.concat([godkjente, avslagte]).sort_values("distance")
-
-    # Verifiser at test-raden ikke er med
-    if test_row["ID"] in df_without_test["ID"].values:
-        print("⚠️ Test-raden er fortsatt med!")
-
     return examples
 
-# 11. Prediksjonsfunksjon med dynamisk few-shot
-def predict_approval_detailed(row, row_index):
-    # Automatisk avslag basert på regler
-    if row["Avkjørsel, holdningsklasse"] != "Lite streng":
-        return {
-            "vedtak": "Avslag",
-            "begrunnelse": f"Automatisk vurdert som en vanskelig søknad på grunn av at holdningsklassen er {row['Avkjørsel, holdningsklasse']}."
-        }
+def predict_approval_detailed(row, row_index, prob_avslag, ml_prediction_explanation):
+    kategori = "Vanskelig"
+    begrunnelseForKategori = ""
+    #if row["Avkjørsel, holdningsklasse"] != "Lite streng":
+    #    begrunnelseForKategori = f"holdningsklassen er {row['Avkjørsel, holdningsklasse']}"
 
-    if row["Fartsgrense"] > 60 and row["Søknadstype"] not in ["Utvidet bruk", "Endret bruk"]:
-        return {
-            "vedtak": "Avslag",
-            "begrunnelse": f"Automatisk vurdert som en vanskelig søknad på grunn av fartsgrense {row['Fartsgrense']}km/t og søknadstypen er {row['Søknadstype']}."
-        }
-    
-    if  row["Svingkategori"] == "Krapp sving" and row["Søknadstype"] not in ["Utvidet bruk", "Endret bruk"]:
-        return {
-            "vedtak": "Avslag",
-            "begrunnelse": f"Automatisk vurdert som en vanskelig søknad på grunn av at avkjørselen er i en sving og søknadstypen er {row['Søknadstype']}."
-        }
+    #if row["Fartsgrense"] > 60 and row["Søknadstype"] not in ["Utvidet bruk", "Endret bruk"]:
+    #    begrunnelseForKategori = f"fartsgrensen er {row['Fartsgrense']}km/t og søknadstypen er {row['Søknadstype']}"
 
-    # Beregn avstand
+    #if row["Svingkategori"] == "Krapp sving" and row["Søknadstype"] not in ["Utvidet bruk", "Endret bruk"]:
+    #   begrunnelseForKategori = f"avkjørselen er i en sving og søknadstypen er {row['Søknadstype']}"
+
     test_vector = df_scaled[row_index]
     df_without_test = df[df["ID"] != row["ID"]]
     few_shot_df = get_few_shot_examples(row, test_vector, df_without_test, scaler)
@@ -129,8 +111,10 @@ def predict_approval_detailed(row, row_index):
         few_shot_examples.append(example)
 
     prompt = f"""
-    Du er saksbehandler i Statens vegvesen. Gitt følgende søknadsdata og retningslinjene nedenfor, skal du avgjøre om søknaden burde fått godkjent eller avslag. 
+    Du er saksbehandler i Statens vegvesen. Gitt følgende søknadsdata, tree-explainer fra maskinlæringsmodell og retningslinjene nedenfor, skal du avgjøre om søknaden burde fått godkjent eller avslag. 
 
+    {ml_prediction_explanation}
+        
     Nå vurder denne søknaden:
     {format_row(row)}
 
@@ -155,26 +139,63 @@ def predict_approval_detailed(row, row_index):
         result = json.loads(re.sub(r"^```[a-zA-Z]*\n?|```$", "", response.choices[0].message.content.strip()))
         vedtak = "Godkjent" if result.get("approve") else "Avslag"
         begrunnelse = result.get("reason", "Ingen begrunnelse oppgitt.")
+        if begrunnelseForKategori == "":
+            if vedtak == "Godkjent" and prob_avslag < 50:
+                kategori = "Enkel"
+                begrunnelseForKategori = "det ikke høy sannsynlighet for avslag og foreslått vedtak er godkjent"
+            elif vedtak == "Godkjent" and prob_avslag >= 50:
+                kategori = "Vanskelig"
+                begrunnelseForKategori = "det er høy sannsynlighet for avslag"
+            else:
+                kategori = "Vanskelig"
+                begrunnelseForKategori = "foreslått vedtak er avslag"
+        
         return {
             "vedtak": vedtak,
-            "begrunnelse": begrunnelse
+            "begrunnelse": begrunnelse,
+            "kategori": kategori,
+            "begrunnelseForKategori": begrunnelseForKategori,
         }
     except Exception as e:
-        print("Feil:", e)
         return {
             "vedtak": "Feil",
-            "begrunnelse": str(e)
+            "begrunnelse": str(e),
+            "kategori": kategori,
+            "begrunnelseForKategori": begrunnelseForKategori,
         }
+    
 
-target_row = df[df["EGS.SAKSNUMMER.1822"] == "202443995-2"]
-if not target_row.empty:
-    index = target_row.index[0]
-    result = predict_approval_detailed(target_row.iloc[0], index)
-    if result["vedtak"] == "Godkjent":
-        print("Kategori: Enkel søknad")
-        print("Foreslått vedtak:", result["vedtak"])
-    else:
-        print("Kategori: Vanskelig søknad")
-    print("Begrunnelse:", result["begrunnelse"])
+
+predictions = []
+for i, (_, row) in enumerate(tqdm(df.iterrows(), total=len(df), desc="Predikerer")):
+    ml_prediction = get_rf_prediction(
+    avkjorsel=row.get('Avkjørsel', 0),
+    bakke=row.get('Kurvatur, stigning', 0),
+    adt_total=row.get('ÅDT, total', 0),
+    andel_lange=row.get('ÅDT, andel lange kjøretøy', 0),
+    fartsgrense=row.get('Fartsgrense', 0),
+    sving=row.get('Kurvatur, horisontal', 0),
+    return_exp=True
+    )
+    prob_avslag = ml_prediction["probability_percent"]
+    ml_prediction_explanation = ml_prediction["pretty_text"]
+    predictions.append(predict_approval_detailed(row, i, prob_avslag, ml_prediction_explanation)["kategori"])
+
+df["Prediksjon"] = predictions
+
+# 13. Evaluer
+y_true = df["Vurdering"]
+y_pred = df["Prediksjon"]
+valid_mask = y_pred.isin(["Enkel", "Vanskelig"])
+
+if valid_mask.sum() > 0:
+    conf_matrix = confusion_matrix(y_true[valid_mask], y_pred[valid_mask], labels=["Enkel", "Vanskelig"])
+    report = classification_report(y_true[valid_mask], y_pred[valid_mask])
+    print("Confusion Matrix:\n", conf_matrix)
+    print("\nClassification Report:\n", report)
+    print("\nAntall prediksjoner gjort:", valid_mask.sum(), "av", len(df))
 else:
-    print("Fant ikke søknad med saksnummer 202443995-2")
+    print("Ingen gyldige prediksjoner ble gjort.")
+
+# 14. Lagre resultater
+df.to_csv("prediksjoner_test_dynamisk.csv", index=False)
