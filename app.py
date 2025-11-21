@@ -86,7 +86,7 @@ def get_few_shot_examples(test_row, test_vector, df_without_test, scaler):
     examples = pd.concat([godkjente, avslagte]).sort_values("distance")
     return examples
 
-def predict_approval_detailed(row, row_index, prob_avslag, klasse):
+def predict_approval_detailed(row, row_index, prob_avslag, ml_prediction_explanation):
     kategori = "Vanskelig"
     begrunnelseForKategori = ""
     #if row["Avkjørsel, holdningsklasse"] != "Lite streng":
@@ -115,16 +115,7 @@ def predict_approval_detailed(row, row_index, prob_avslag, klasse):
     prompt = f"""
     Du er saksbehandler i Statens vegvesen. Gitt følgende søknadsdata, tree-explainer fra maskinlæringsmodell og retningslinjene nedenfor, skal du avgjøre om søknaden burde fått godkjent eller avslag. 
 
-    Sannsynlighet for avslag: {prob_avslag}
-    Kategori: {klasse}
-    Faktorer som ØKER sannsynligheten for avslag:
-    • Total trafikkmengde per år × antall avkjørsler (verdi: 25000.0, effekt: +0.072)
-    • Total trafikkmengde per år × fartsgrense × antall avkjørsler (verdi: 1000000.0, effekt: +0.011)
-    • Total trafikkmengde per år × kurvatur, stigning (verdi: 500.0, effekt: +0.002)
-    Faktorer som REDUSERER sannsynligheten for avslag:
-    • Total trafikkmengde per år × antall avkjørsler × antall tunge kjøretøy per år (verdi: 125000.0, effekt: -0.053)
-    • Total trafikkmengde per år × antall avkjørsler × kurvatur, stigning (verdi: 2500.0, effekt: -0.056)
-    • Total trafikkmengde per år × andel tunge kjøretøy (verdi: 25000.0, effekt: -0.158)
+    {ml_prediction_explanation}
         
     Nå vurder denne søknaden:
     {format_row(row)}
@@ -175,7 +166,7 @@ def predict_approval_detailed(row, row_index, prob_avslag, klasse):
             "begrunnelseForKategori": begrunnelseForKategori,
         }
     
-def predict_approval_cached(row, row_index, prob_avslag, klasse):
+def predict_approval_cached(row, row_index, prob_avslag, ml_prediction_explanation):
     app_id = row["ID"]
 
     # Check if cached
@@ -186,7 +177,7 @@ def predict_approval_cached(row, row_index, prob_avslag, klasse):
         return st.session_state["llm_cache"][app_id]
 
     # Otherwise compute and cache
-    result = predict_approval_detailed(row, row_index, prob_avslag, klasse)
+    result = predict_approval_detailed(row, row_index, prob_avslag, ml_prediction_explanation)
     st.session_state["llm_cache"][app_id] = result
     return result
     
@@ -286,17 +277,23 @@ else:
             **Arkivreferanse (URL):** {row.get('EGS.ARKIVREFERANSE, URL.12050', 'Ikke oppgitt')}  
             """)
 
-        prob_avslag, klasse = get_rf_prediction(
+        ml_prediction = get_rf_prediction(
             avkjorsel=row.get('Avkjørsel', 0),
             bakke=row.get('Kurvatur, stigning', 0),
             adt_total=row.get('ÅDT, total', 0),
             andel_lange=row.get('ÅDT, andel lange kjøretøy', 0),
             fartsgrense=row.get('Fartsgrense', 0),
-            sving=row.get('Kurvatur, horisontal', 0))
+            sving=row.get('Kurvatur, horisontal', 0),
+            return_exp=True
+            )
+
+        prob_avslag = ml_prediction["probability_percent"]
+        ml_prediction_explanation = ml_prediction["pretty_text"]
+        klasse = ml_prediction['klasse']
         
         # Vurder søknaden
         with st.spinner("Vurderer søknaden..."):
-            result = predict_approval_cached(row, index, prob_avslag, klasse)
+            result = predict_approval_cached(row, index, prob_avslag, ml_prediction_explanation)
 
         st.subheader("Automatisk råd")
         st.write(f"**Kategori:** {result['kategori']} søknad, ettersom {result['begrunnelseForKategori']}.")
