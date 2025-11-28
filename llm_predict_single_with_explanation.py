@@ -9,8 +9,8 @@ import re
 import uuid
 from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
-
 from rf_prediction import get_rf_prediction
+from kategori_predictor import train_model, predict_category
 
 # 1. Last inn miljøvariabler
 load_dotenv()
@@ -34,11 +34,12 @@ with fitz.open("HB_R701_Behandling_avkjorselssaker_2014.pdf") as pdf:
 df = pd.read_csv("data_annotert.csv", sep=";")
 df = df.dropna(subset=['Vurdering'])
 df["ID"] = [str(uuid.uuid4()) for _ in range(len(df))]
-df = df.drop(columns=["Kurvatur, horisontal", "EGS.VEDTAKSDATO.11444", "EGS.TILLEGGSINFORMASJON.11566", "EGS.TILLATELSE GJELDER TIL DATO.12049", "EGS.GEOMETRI, PUNKT.4753"])
+df = df.drop(columns=["EGS.VEDTAKSDATO.11444", "EGS.TILLEGGSINFORMASJON.11566", "EGS.TILLATELSE GJELDER TIL DATO.12049", "EGS.GEOMETRI, PUNKT.4753"])
 df["Kurvatur, stigning"] = df["Kurvatur, stigning"].abs()
 
 # 5. Lag binær fasitkolonne
 df["VEDTAK_BINÆR"] = df["EGS.VEDTAK.10670"].apply(lambda x: "Avslag" if x == "Avslag" else "Godkjent")
+
 
 # 6. Velg numeriske features for matching
 features = [
@@ -85,17 +86,6 @@ def get_few_shot_examples(test_row, test_vector, df_without_test, scaler):
     return examples
 
 def predict_approval_detailed(row, row_index, prob_avslag, ml_prediction_explanation):
-    kategori = "Vanskelig"
-    begrunnelseForKategori = ""
-    #if row["Avkjørsel, holdningsklasse"] != "Lite streng":
-    #    begrunnelseForKategori = f"holdningsklassen er {row['Avkjørsel, holdningsklasse']}"
-
-    #if row["Fartsgrense"] > 60 and row["Søknadstype"] not in ["Utvidet bruk", "Endret bruk"]:
-    #    begrunnelseForKategori = f"fartsgrensen er {row['Fartsgrense']}km/t og søknadstypen er {row['Søknadstype']}"
-
-    #if row["Svingkategori"] == "Krapp sving" and row["Søknadstype"] not in ["Utvidet bruk", "Endret bruk"]:
-    #   begrunnelseForKategori = f"avkjørselen er i en sving og søknadstypen er {row['Søknadstype']}"
-
     test_vector = df_scaled[row_index]
     df_without_test = df[df["ID"] != row["ID"]]
     few_shot_df = get_few_shot_examples(row, test_vector, df_without_test, scaler)
@@ -139,34 +129,21 @@ def predict_approval_detailed(row, row_index, prob_avslag, ml_prediction_explana
         result = json.loads(re.sub(r"^```[a-zA-Z]*\n?|```$", "", response.choices[0].message.content.strip()))
         vedtak = "Godkjent" if result.get("approve") else "Avslag"
         begrunnelse = result.get("reason", "Ingen begrunnelse oppgitt.")
-        if begrunnelseForKategori == "":
-            if vedtak == "Godkjent" and prob_avslag < 50:
-                kategori = "Enkel"
-                begrunnelseForKategori = "det ikke høy sannsynlighet for avslag og foreslått vedtak er godkjent"
-            elif vedtak == "Godkjent" and prob_avslag >= 50:
-                kategori = "Vanskelig"
-                begrunnelseForKategori = "det er høy sannsynlighet for avslag"
-            else:
-                kategori = "Vanskelig"
-                begrunnelseForKategori = "foreslått vedtak er avslag"
-        
+
+
         return {
             "vedtak": vedtak,
             "begrunnelse": begrunnelse,
-            "kategori": kategori,
-            "begrunnelseForKategori": begrunnelseForKategori,
         }
     except Exception as e:
         return {
             "vedtak": "Feil",
             "begrunnelse": str(e),
-            "kategori": kategori,
-            "begrunnelseForKategori": begrunnelseForKategori,
         }
     
-
-
-predictions = []
+vedtak_predictions = []
+prob_avslag_liste = [] 
+begrunnelser = []
 for i, (_, row) in enumerate(tqdm(df.iterrows(), total=len(df), desc="Predikerer")):
     ml_prediction = get_rf_prediction(
     avkjorsel=row.get('Avkjørsel', 0),
@@ -179,13 +156,38 @@ for i, (_, row) in enumerate(tqdm(df.iterrows(), total=len(df), desc="Predikerer
     )
     prob_avslag = ml_prediction["probability_percent"]
     ml_prediction_explanation = ml_prediction["pretty_text"]
-    predictions.append(predict_approval_detailed(row, i, prob_avslag, ml_prediction_explanation)["kategori"])
+    prob_avslag_liste.append(prob_avslag)
+    result = predict_approval_detailed(row, i, prob_avslag, ml_prediction_explanation)
+    vedtak_predictions.append(result["vedtak"])
+    begrunnelser.append(result["begrunnelse"])
 
-df["Prediksjon"] = predictions
+df["Prediksjon_vedtak"] = vedtak_predictions
+df["Begrunnelse_vedtak"] = begrunnelser
+df["prob_avslag"] = prob_avslag_liste  
+
+# Etter at vedtak og prob_avslag er lagt til:
+model, vectorizer, numeric_cols, threshold = train_model(df)
+
+# Bruk den oppdaterte modellen til å predikere kategori for hver rad
+kategori_resultater = []
+forklaring_resultater = []
+p_vanskelig_resultater = []
+
+for _, row in df.iterrows():
+    kategori, forklaring_ml, p_vanskelig = predict_category(row, model, vectorizer, numeric_cols, threshold)
+    kategori_resultater.append(kategori)
+    forklaring_resultater.append(forklaring_ml)
+    p_vanskelig_resultater.append(p_vanskelig)
+
+# Legg til i datasettet
+df["Prediksjon_kategori"] = kategori_resultater
+df["Forklaring_kategori"] = forklaring_resultater
+df["p_vanskelig"] = p_vanskelig_resultater
+
 
 # 13. Evaluer
 y_true = df["Vurdering"]
-y_pred = df["Prediksjon"]
+y_pred = df["Prediksjon_kategori"]
 valid_mask = y_pred.isin(["Enkel", "Vanskelig"])
 
 if valid_mask.sum() > 0:
@@ -194,6 +196,20 @@ if valid_mask.sum() > 0:
     print("Confusion Matrix:\n", conf_matrix)
     print("\nClassification Report:\n", report)
     print("\nAntall prediksjoner gjort:", valid_mask.sum(), "av", len(df))
+else:
+    print("Ingen gyldige prediksjoner ble gjort.")
+
+# 13. Evaluer vedtak
+y_true_vedtak = df["VEDTAK_BINÆR"]
+y_pred_vedtak = df["Prediksjon_vedtak"]
+valid_mask_vedtak = y_pred_vedtak.isin(["Godkjent", "Avslag"])
+
+if valid_mask_vedtak.sum() > 0:
+    conf_matrix = confusion_matrix(y_true_vedtak[valid_mask_vedtak], y_pred_vedtak[valid_mask_vedtak], labels=["Godkjent", "Avslag"])
+    report = classification_report(y_true_vedtak[valid_mask_vedtak], y_pred_vedtak[valid_mask_vedtak])
+    print("Confusion Matrix:\n", conf_matrix)
+    print("\nClassification Report:\n", report)
+    print("\nAntall prediksjoner gjort:", valid_mask_vedtak.sum(), "av", len(df))
 else:
     print("Ingen gyldige prediksjoner ble gjort.")
 
