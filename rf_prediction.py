@@ -61,11 +61,11 @@ def get_rf_prediction(
 
     # Klassifisering
     if prob_avslag < 0.05:
-        klasse = "statistisk lav sannsynlighet for avslag"
+        klasse = "lav sannsynlighet for avslag"
     elif prob_avslag < 0.50:
-        klasse = "statistisk medium sannsynlighet for avslag"
+        klasse = "medium sannsynlighet for avslag"
     else:
-        klasse = "statistisk høy sannsynlighet for avslag"
+        klasse = "høy sannsynlighet for avslag"
 
     # --------------------------------------
     # Forklaring (treeinterpreter)
