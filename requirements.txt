@@ -11,3 +11,4 @@ streamlit==1.51.0
 tqdm==4.67.1
 PyMuPDF==1.26.6
 streamlit_extras==0.7.8
+imbalanced-learn==0.14.0
