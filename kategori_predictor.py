@@ -8,7 +8,10 @@ from xgboost import XGBClassifier
 import numpy as np
 import pickle
 import gzip
-
+import pandas as pd
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+from rf_prediction import get_rf_prediction
 
 def train_model(df):
     target_col = 'Vurdering'
@@ -34,9 +37,24 @@ def train_model(df):
     data['log_ÅDT'] = np.log1p(data['ÅDT, total'])
     numeric_cols += ['ÅDT_per_avkjørsel', 'log_ÅDT']
 
-    if 'prob_avslag' not in data.columns:
-        data['prob_avslag'] = 0.0
-    numeric_cols.append('prob_avslag')
+    prob_avslag_liste = [] 
+    for i, (_, row) in enumerate(tqdm(df.iterrows(), total=len(df), desc="Predikerer")):
+        ml_prediction = get_rf_prediction(
+            avkjorsel=row.get('Avkjørsel', 0),
+            bakke=row.get('Kurvatur, stigning', 0),
+            adt_total=row.get('ÅDT, total', 0),
+            andel_lange=row.get('ÅDT, andel lange kjøretøy', 0),
+            fartsgrense=row.get('Fartsgrense', 0),
+            sving=row.get('Kurvatur, horisontal', 0),
+            return_exp=True
+            )
+        prob_avslag = ml_prediction["probability_percent"]
+        prob_avslag_liste.append(prob_avslag)
+
+    data["prob_avslag"] = prob_avslag_liste  
+
+    if 'prob_avslag' in data.columns:
+        numeric_cols.append('prob_avslag')
 
     if 'Prediksjon_vedtak' in data.columns:
         data['Prediksjon_vedtak_bin'] = data['Prediksjon_vedtak'].apply(lambda x: 1 if x == 'Avslag' else 0)
@@ -127,6 +145,24 @@ def main():
     print("Confusion Matrix:\n", conf_matrix)
     print("\nClassification Report:\n", report)
     print("\nAntall testprediksjoner:", len(y_test))
+
+
+    # Etter trening:
+    importance = model.feature_importances_
+    feature_importance_df = pd.DataFrame({
+        'Feature': numeric_cols,
+        'Importance': importance
+    }).sort_values(by='Importance', ascending=False)
+
+    print(feature_importance_df)
+
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.barh(feature_importance_df['Feature'], feature_importance_df['Importance'])
+    plt.gca().invert_yaxis()
+    plt.title('Feature Importance (XGBoost)')
+    plt.show()
+
 
 
 
