@@ -27,7 +27,7 @@ Denne informasjonen:
 Formålet med steg 1 er å gi en **objektiv, statistisk risikovurdering** basert på historiske data.
 
 ---
-# Steg 2 og 3 er dokumentert i sine filer
+Steg 2 og 3 er dokumentert i sine filer
 
 ---
 
@@ -85,18 +85,6 @@ Dette gir:
 
 ---
 
-## Prinsipper for ansvarlig bruk
-
-- Ingen enkeltmodell fatter vedtak alene
-- ML brukes til risikovurdering og strukturering
-- Språkmodellens forslag er rådgivende
-- Resultatene skal kunne etterprøves i hvert steg
-
-Arkitekturen er bevisst bygget for å kombinere:
-> statistisk presisjon + forklarbarhet + helhetlig vurdering
-
----
-
 ## Vurdering av treningslogg og modellresultater  
 *(Treningskjøring 2025-11-14 kl. 13:27)*
 
@@ -116,15 +104,6 @@ Treningslogg, modellfil og feature-utvalg er lagret for sporbarhet og etterprøv
 ### Vurdering av identifiserte topp-features
 
 De 10 viktigste forklaringsvariablene består i hovedsak av **interaksjoner mellom trafikkmengde, tunge kjøretøy, terreng og lokale vegforhold**:
-
-- Gjentatt bruk av:
-  - ÅDT (total trafikk)
-  - andel / antall tunge kjøretøy
-  - bakke (stigning)
-- Særlig sterk vektlegging av:
-  - lokale adkomstveger og samleveger
-  - kombinasjoner av avkjørsler og kurvatur
-  - bruksområde skog/skogbruk
 
 Dette er **faglig konsistent** med kjente risikofaktorer i veiforvaltning og indikerer at modellen har lært **meningsfulle strukturer**, ikke tilfeldige korrelasjoner.
 
@@ -156,8 +135,6 @@ Dette innebærer at modellen:
 Resultatene vurderes som **forventede og akseptable** gitt:
 - svært få avslag i datagrunnlaget
 - formålet med modellen (risikovurdering, ikke binært vedtak)
-
-Det vil være faglig feil å bruke denne modellen alene som automatisk avslagsmekanisme.
 
 ---
 
@@ -196,19 +173,5 @@ Begrensningene er tydelige og kjente, og er eksplisitt håndtert gjennom:
 
 Modellen vurderes som **egnet for operativ bruk innenfor den beskrevne arkitekturen**, under forutsetning av at den brukes rådgivende og sammen med øvrige trinn i beslutningsstøttesystemet.
 
----
-
-
-
-## Oppsummering
-
-Balanced Random Forest-modellen fungerer som et **første, kvantitativt risikosteg** i en flertrinns beslutningsstøttemodell.  
-Ved å kombinere forklarbar maskinlæring, språkmodell og egen kompleksitetsklassifisering oppnås:
-
-- bedre strukturerte vurderinger
-- mer konsistente begrunnelser
-- tydeligere prioritering av vanskelige saker
-
-Modellen er utviklet for støtte og kvalitetssikring – ikke automatisert myndighetsutøvelse.
 
 ---
