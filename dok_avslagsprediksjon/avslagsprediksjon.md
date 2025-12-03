@@ -115,45 +115,32 @@ At interaksjonsledd dominerer, er forventet gitt:
 
 ### Vurdering av klassifikasjonsresultater
 
-#### Overordnet ytelse
+Figuren viser fordelingen av modellens predikerte sannsynlighet for avslag, fordelt på:
 
-- **Total accuracy:** 0.92  
-- **Vektet F1-score:** 0.93  
+- **Faktisk klasse 0 (ikke avslag)**  
+- **Faktisk klasse 1 (avslag)**  
 
-Dette viser at modellen er svært god til å identifisere **ikke-avslag**, som også er den klart største klassen.
-
-#### Avslag (klasse 1)
-
-- **Recall:** 0.11  
-- **Precision:** 0.05  
-- **Støtte:** 9 saker i testsettet
-
-Dette innebærer at modellen:
-- fanger opp enkelte avslagssaker
-- men med betydelig usikkerhet på individnivå
-
-Resultatene vurderes som **forventede og akseptable** gitt:
-- svært få avslag i datagrunnlaget
-- formålet med modellen (risikovurdering, ikke binært vedtak)
+Kurvene representerer tetthet (sannsynlighetsfordeling), ikke absolutte tall.
 
 ---
 
-### Vurdering av predikert sannsynlighet (kvantiler)
+### Tolkning av fordelingen
 
-Kvantilene for predikert sannsynlighet gir viktig styringsinformasjon:
+Figuren viser en **tydelig systematisk forskjell** mellom de to klassene:
 
-| Kvantil | Sannsynlighet |
-|-------|---------------|
-| 25 %  | 0.55 % |
-| 50 %  | 2.92 % |
-| 75 %  | 11.03 % |
+- Saker som faktisk ender med **avslag (klasse 1)** har gjennomgående:
+  - høyere predikert sannsynlighet
+  - tyngdepunkt i området ca. 0,3–0,6
+- Saker som faktisk **ikke får avslag (klasse 0)**:
+  - dominerer i lavere sannsynligheter
+  - har hovedtyngde under ca. 0,2–0,3
 
-Tolkning:
-- De fleste saker vurderes som lavrisiko
-- Øvre kvartil representerer et tydelig skille for **forsterket oppmerksomhet**
-- Bruk av hengslede terskler (f.eks. > 10 %) er mer hensiktsmessig enn fast ja/nei-grense
+Det er betydelig overlapp, noe som er forventet gitt:
+- komplekse faglige vurderinger
+- begrenset datagrunnlag for avslag
+- at enkelte avslag avgjøres av forhold som ikke er fullt observerbare i data
 
-Dette understøtter valg av modellen som **første sorteringsledd** i en fler-stegs prosess.
+![alt text](image.png)
 
 ---
 
