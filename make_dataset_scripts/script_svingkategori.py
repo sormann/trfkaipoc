@@ -3,7 +3,7 @@ import numpy as np
 import csv
 
 # Load the dataset
-df = pd.read_csv("data_2022-2025.csv", sep=";")
+df = pd.read_csv("data_annotert.csv", sep=";")
 
 # Define the categorization function
 def kategoriser_sving(radius):
@@ -32,4 +32,4 @@ print("Opptelling av svingkategorier:")
 print(sving_telling)
 
 # Save the updated dataset
-df.to_csv("data_2022-2025.csv", sep=";", index=False, quoting=csv.QUOTE_NONNUMERIC)
+df.to_csv("data_annotert2.csv", sep=";", index=False, quoting=csv.QUOTE_NONNUMERIC)
