@@ -10,7 +10,8 @@ import uuid
 from sklearn.metrics import confusion_matrix, classification_report
 from tqdm import tqdm
 from rf_prediction import get_rf_prediction
-from kategori_predictor import train_model, predict_category
+from kategori_predictor import predict_category
+import math
 
 # 1. Last inn miljøvariabler
 load_dotenv()
@@ -31,15 +32,14 @@ with fitz.open("HB_R701_Behandling_avkjorselssaker_2014.pdf") as pdf:
     pdf_text = "\n".join(page.get_text() for page in pdf)
 
 # 4. Les datasettet
-df = pd.read_csv("data_annotert.csv", sep=";")
-df = df.dropna(subset=['Vurdering'])
+df = pd.read_csv("data_2022-2025.csv", sep=";")
+#df = df.dropna(subset=['Vurdering'])
 df["ID"] = [str(uuid.uuid4()) for _ in range(len(df))]
 df = df.drop(columns=["EGS.VEDTAKSDATO.11444", "EGS.TILLEGGSINFORMASJON.11566", "EGS.TILLATELSE GJELDER TIL DATO.12049", "EGS.GEOMETRI, PUNKT.4753"])
 df["Kurvatur, stigning"] = df["Kurvatur, stigning"].abs()
 
 # 5. Lag binær fasitkolonne
 df["VEDTAK_BINÆR"] = df["EGS.VEDTAK.10670"].apply(lambda x: "Avslag" if x == "Avslag" else "Godkjent")
-
 
 # 6. Velg numeriske features for matching
 features = [
@@ -51,14 +51,13 @@ scaler = StandardScaler()
 df_scaled = scaler.fit_transform(df[features].fillna(0))
 
 # 10. Format rad
-
 def format_row(row):
     row_dict = row.drop(["EGS.VEDTAK.10670", "VEDTAK_BINÆR", "ID", "OBJ.VEGOBJEKT-ID", "EGS.SAKSNUMMER.1822", "EGS.ARKIVREFERANSE, URL.12050"]).to_dict()
     return "\n".join([f"{key}: {value}" for key, value in row_dict.items()])
 
 def get_few_shot_examples(test_row, test_vector, df_without_test, scaler):
-    filtered = df_without_test[df_without_test["Avkjørsel, holdningsklasse"] == test_row["Avkjørsel, holdningsklasse"]]
-    new_filtered = filtered[filtered["EGS.BRUKSOMRÅDE.1256"] == test_row["EGS.BRUKSOMRÅDE.1256"]]
+    filtered = df_without_test[df_without_test["Avkjørsel, holdningsklasse"] == test_row["Avkjørsel, holdningsklasse"]].copy()
+    new_filtered = filtered[filtered["EGS.BRUKSOMRÅDE.1256"] == test_row["EGS.BRUKSOMRÅDE.1256"]].copy()
     if len(new_filtered) > 0:
         filtered = new_filtered
     if len(filtered) == 0:
@@ -71,7 +70,7 @@ def get_few_shot_examples(test_row, test_vector, df_without_test, scaler):
         current = existing_df
         missing = needed - len(current)
         if missing > 0:
-            remaining = df_source[df_source["VEDTAK_BINÆR"] == label].drop(existing_df.index, errors='ignore')
+            remaining = df_source[df_source["VEDTAK_BINÆR"] == label].drop(existing_df.index, errors='ignore').copy()
             remaining_scaled = scaler.transform(remaining[features].fillna(0))
             remaining["distance"] = ((remaining_scaled - vector) ** 2).sum(axis=1)
             filler = remaining.nsmallest(missing, "distance")
@@ -141,6 +140,21 @@ def predict_approval_detailed(row, row_index, prob_avslag, ml_prediction_explana
             "begrunnelse": str(e),
         }
     
+# Antall avslag i testsettet
+#n_avslag = df[df["VEDTAK_BINÆR"] == "Avslag"].shape[0]
+
+# Filtrer alle avslag
+#avslag_df = df[df["VEDTAK_BINÆR"] == "Avslag"]
+
+# Velg godkjente basert på antall avslag
+#godkjent_df = df[df["VEDTAK_BINÆR"] == "Godkjent"].sample(n=math.floor(n_avslag*2), random_state=42)
+
+# Kombiner og shuffle
+#df = pd.concat([avslag_df, godkjent_df]).sample(frac=1, random_state=42).reset_index(drop=True)
+
+#print("Fordeling i balansert testsett:")
+#print(df["VEDTAK_BINÆR"].value_counts())
+    
 vedtak_predictions = []
 prob_avslag_liste = [] 
 begrunnelser = []
@@ -165,39 +179,18 @@ df["Prediksjon_vedtak"] = vedtak_predictions
 df["Begrunnelse_vedtak"] = begrunnelser
 df["prob_avslag"] = prob_avslag_liste  
 
-# Etter at vedtak og prob_avslag er lagt til:
-model, vectorizer, numeric_cols, threshold = train_model(df)
-
 # Bruk den oppdaterte modellen til å predikere kategori for hver rad
 kategori_resultater = []
-forklaring_resultater = []
 p_vanskelig_resultater = []
 
 for _, row in df.iterrows():
-    kategori, forklaring_ml, p_vanskelig = predict_category(row, model, vectorizer, numeric_cols, threshold)
+    kategori, p_vanskelig = predict_category(row)
     kategori_resultater.append(kategori)
-    forklaring_resultater.append(forklaring_ml)
     p_vanskelig_resultater.append(p_vanskelig)
 
 # Legg til i datasettet
 df["Prediksjon_kategori"] = kategori_resultater
-df["Forklaring_kategori"] = forklaring_resultater
 df["p_vanskelig"] = p_vanskelig_resultater
-
-
-# 13. Evaluer
-y_true = df["Vurdering"]
-y_pred = df["Prediksjon_kategori"]
-valid_mask = y_pred.isin(["Enkel", "Vanskelig"])
-
-if valid_mask.sum() > 0:
-    conf_matrix = confusion_matrix(y_true[valid_mask], y_pred[valid_mask], labels=["Enkel", "Vanskelig"])
-    report = classification_report(y_true[valid_mask], y_pred[valid_mask])
-    print("Confusion Matrix:\n", conf_matrix)
-    print("\nClassification Report:\n", report)
-    print("\nAntall prediksjoner gjort:", valid_mask.sum(), "av", len(df))
-else:
-    print("Ingen gyldige prediksjoner ble gjort.")
 
 # 13. Evaluer vedtak
 y_true_vedtak = df["VEDTAK_BINÆR"]
