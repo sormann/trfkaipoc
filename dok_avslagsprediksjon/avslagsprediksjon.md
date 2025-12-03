@@ -4,12 +4,7 @@ Denne modellen inngår som **første trinn i en fler-stegs beslutningsstøttelø
 
 Hvert trinn har et tydelig avgrenset formål, og ingen enkeltkomponent fatter vedtak alene.
 
----
-
-## Oversikt over beslutningskjeden
-
 ### Steg 1: Prediksjon av sannsynlighet for avslag (Random Forest)
-
 Først kjøres Balanced Random Forest-modellen beskrevet i dette dokumentet.  
 Utdata fra dette steget er:
 
@@ -26,16 +21,95 @@ Denne informasjonen:
 
 Formålet med steg 1 er å gi en **objektiv, statistisk risikovurdering** basert på historiske data.
 
----
 Steg 2 og 3 er dokumentert i sine filer
 
+### 1 Trening av modell: train_rf_model.py
+
+## 1.1 Datagrunnlag
+
+- **Datakilde:** Vegdatabank 
+- **Tidsperiode:** 2022–2025  
+- **Enheter:** 463 Enkeltsaker med registrert vedtaksutfall  
+- **Målvariabel:**
+  - `Avslag_ind = 1` → Avslag / Avslag etter klage
+  - `Avslag_ind = 0` → Ikke avslag
+
+Saker uten registrert vedtak er utelatt.
+
+Datasettet er sterkt ubalansert:
+- ca. 97 % ikke-avslag
+- ca. 3 % avslag
+
+### 1.1 Grunnvariabler
+
+Modellen benytter blant annet:
+- ÅDT, totalt trafikkvolum
+- Andel lange kjøretøy
+- Fartsgrense
+- Antall avkjørsler
+- Registrerte trafikkulykker
+- Funksjonsklasse
+- Bruksområde
+- Kurvatur (horisontal og stigning)
+
+Kategoriske variabler er kodet med one-hot encoding.
+
+### 1.2 Konstruerte variabler
+For å fange ikke-lineære sammenhenger er følgende variabler konstruert:
+
+| Variabel | Beskrivelse |
+|--------|-------------|
+| `sving_ind` | Indikerer om vegstrekningen har relevant kurvatur |
+| `bakke` | Absoluttverdi av stigning |
+| `bakke_ind` | Indikator for stigning > 0.1 |
+| `sving_sigmoid` | Glattet funksjon av horisontal kurvatur |
+| `antall_lange_kj` | ÅDT × andel lange kjøretøy |
+
+### 1.3 Interaksjonsledd
+Det er generert **polynomiske interaksjoner av grad 3**, kun interaksjoner (`interaction_only=True`), uten konstantledd.
+
+Dette gjør det mulig å fange:
+- kombinasjonseffekter (f.eks. høy trafikk i kombinasjon med bratt terreng)
+- samspill mellom trafikkmengde, vegstandard og kurvatur
+
+## 1.4 Håndtering av klasseubalanse
+To metoder benyttes for å håndtere skjev fordeling mellom klassene:
+
+1. **ADASYN-oversampling** av minoritetsklassen i treningssettet
+2. **Balanced Random Forest**, der hvert beslutningstre trenes på balanserte utvalg
+
+Dette reduserer risikoen for at modellen ignorerer avslagssaker.
+
+## 1.5 Vurdering av klassifikasjonsresultater
+Figuren viser fordelingen av modellens predikerte sannsynlighet for avslag, fordelt på:
+- **Faktisk klasse 0 (ikke avslag)**  
+- **Faktisk klasse 1 (avslag)**  
+
+Kurvene representerer tetthet (sannsynlighetsfordeling), ikke absolutte tall.
+
+Figuren viser en noe forskjell mellom de to klassene:
+
+- Saker som faktisk ender med **avslag (klasse 1)** har gjennomgående:
+  - høyere predikert sannsynlighet
+  - tyngdepunkt i området ca. 0,3–0,6
+- Saker som faktisk **ikke får avslag (klasse 0)**:
+  - dominerer i lavere sannsynligheter
+  - har hovedtyngde under ca. 0,2–0,3
+
+Det er betydelig overlapp, noe som er forventet gitt:
+- komplekse faglige vurderinger
+- begrenset datagrunnlag for avslag
+- at avslag avgjøres av forhold som ikke er fullt observerbare i data
+
+![alt text](image.png)
+
 ---
 
-## Forklarbarhet i modellen: `predictions.py`
+### 2 Prediksjon basert på modellen `predictions.py`
 
 Prediksjonen i steg 1 utføres av `predictions.py`, som laster den trente Balanced Random Forest-modellen og produserer både prediksjon og forklaring.
 
-### Input
+## 2.1 Input
 
 Modellen forventer følgende hovedparametere:
 - antall avkjørsler
@@ -47,9 +121,7 @@ Modellen forventer følgende hovedparametere:
 
 Basert på disse konstrueres de interaksjonsleddene modellen er trent på.
 
----
-
-### Output
+### 2.2 Output
 
 Funksjonen `get_rf_prediction()` returnerer enten:
 - kun sannsynlighet og klasse, eller
@@ -60,9 +132,7 @@ Funksjonen `get_rf_prediction()` returnerer enten:
   - faktorer som reduserer sannsynligheten for avslag
   - ferdig formatert forklaringstekst
 
----
-
-### Forklaringsmekanisme (treeinterpreter)
+## 2.3 Forklaringsmekanisme (treeinterpreter)
 
 Forklaringene er basert på `treeinterpreter`, som dekomponerer Random Forest-prediksjonen i:
 
@@ -85,67 +155,7 @@ Dette gir:
 
 ---
 
-## Vurdering av treningslogg og modellresultater  
-*(Treningskjøring 2025-11-14 kl. 13:27)*
-
-Denne seksjonen dokumenterer og vurderer en konkret treningskjøring av modellen, basert på automatisk generert treningslogg.
-
-### Treningsinformasjon
-
-- **Tidspunkt for trening:** 2025-11-14 13:27:57  
-- **Lagret modellfil:** `balanced_rf_model_20251114_132757.pkl.gz`  
-- **Modell:** Balanced Random Forest  
-- **Bruksområde:** Steg 1 i fler-stegs beslutningsstøttesystem
-
-Treningslogg, modellfil og feature-utvalg er lagret for sporbarhet og etterprøvbarhet.
-
----
-
-### Vurdering av identifiserte topp-features
-
-De 10 viktigste forklaringsvariablene består i hovedsak av **interaksjoner mellom trafikkmengde, tunge kjøretøy, terreng og lokale vegforhold**:
-
-Dette er **faglig konsistent** med kjente risikofaktorer i veiforvaltning og indikerer at modellen har lært **meningsfulle strukturer**, ikke tilfeldige korrelasjoner.
-
-At interaksjonsledd dominerer, er forventet gitt:
-- eksplisitt bruk av polynomiske interaksjoner
-- kompleks, ikke-lineær problemstilling
-
----
-
-### Vurdering av klassifikasjonsresultater
-
-Figuren viser fordelingen av modellens predikerte sannsynlighet for avslag, fordelt på:
-
-- **Faktisk klasse 0 (ikke avslag)**  
-- **Faktisk klasse 1 (avslag)**  
-
-Kurvene representerer tetthet (sannsynlighetsfordeling), ikke absolutte tall.
-
----
-
-### Tolkning av fordelingen
-
-Figuren viser en **tydelig systematisk forskjell** mellom de to klassene:
-
-- Saker som faktisk ender med **avslag (klasse 1)** har gjennomgående:
-  - høyere predikert sannsynlighet
-  - tyngdepunkt i området ca. 0,3–0,6
-- Saker som faktisk **ikke får avslag (klasse 0)**:
-  - dominerer i lavere sannsynligheter
-  - har hovedtyngde under ca. 0,2–0,3
-
-Det er betydelig overlapp, noe som er forventet gitt:
-- komplekse faglige vurderinger
-- begrenset datagrunnlag for avslag
-- at enkelte avslag avgjøres av forhold som ikke er fullt observerbare i data
-
-![alt text](image.png)
-
----
-
-### Samlet vurdering
-
+### 3 Samlet vurdering
 Treningsloggen indikerer at:
 
 - Modellen er stabil og faglig rimelig
